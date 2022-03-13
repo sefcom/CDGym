@@ -29,4 +29,26 @@
           - virt-manager
           - qemu-system-x86
         state: latest
+
+# /usr/bin/ansible invocations
+# ansible host -m virt -a "name=<vm_name> command=status"
+# ansible host -m virt -a "name=alpha command=get_xml"
+# ansible host -m virt -a "name=alpha command=create uri=lxc:///"
+
+# Setup VMs
+    - name: Setup VMs
+      community.libvirt.virt:
+        command: define
+        xml: "{{ lookup('template', 'container-template.xml.j2') }}"
+        url: 'lxc:///'
+    - name: Start VM
+      community.libvirt.virt:
+        name: <VM_Name>
+        state: running
+        autostart: yes
+    - name: List running VMs
+      community.libvirt.virt:
+        command: list_vms
+        state: running
+      register: running_vms
 ...
