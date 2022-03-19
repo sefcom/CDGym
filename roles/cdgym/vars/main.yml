@@ -1,0 +1,17 @@
+---
+# vars file for cdgym
+install_packages:
+  - curl
+  - vim
+  - build-essential
+  - software-properties-common
+  - libvirt-clients
+  - libvirt-daemon-system
+  - ovmf
+  - virt-manager
+  - qemu-system-x86
+  - virt-viewer
+  - openvswitch-switch
+  - openvswitch-common
+  - libguestfs-tools
+  - genisoimage

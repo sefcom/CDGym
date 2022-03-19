@@ -1,0 +1,70 @@
+---
+# tasks file for cdgym
+- name: Allow sudo group to have passwordless sudo
+  lineinfile:
+    path: /etc/sudoers
+    state: present
+    regexp: '^%sudo'
+    line: '%sudo    ALL=(ALL)   NOPASSWD: ALL'
+    validate: '/usr/sbin/visudo -cf %s'
+
+- name: Update apt
+  apt: update_cache=yes
+
+- name: Install dependencies
+  apt:
+    pkg: "{{ install_packages }}"
+    state: latest
+
+- name: Get VMs list
+  community.libvirt.virt:
+    command: list_vms
+  register: existing_vms
+  changed_when: no
+
+- name: Download base image
+  get_url:
+    url: "{{ base_image_url }}"
+    dest: "/tmp/{{ base_image_name }}"
+    checksum: "sha256: {{ base_image_sha }}"
+
+- name: Copy base image to libvirt directory
+  copy:
+    dest: "{{ libvirt_pool_dir }}/{{ vm_name}}.qcow2"
+    src: "/tmp/{{ base_image_name }}"
+    force: no
+    remote_src: no
+    mode: 0660
+  register: copy_results
+
+- name: Configure the image
+  command: |
+    virt-customize -a {{ libvirt_pool_dir }}/{{ vm_name }}.qcow2 \
+    --hostname {{ vm_name }} \
+    --root-password password:{{ vm_root_pass }} \
+    --ssh-inject 'root:file:{{ ssh_key }}' \
+    --uninstall cloud-init --selinux-relabel
+  when: copy_results is changed
+
+- name: Define VM
+  community.libvirt.virt:
+    command: define
+    xml: "{{ lookup('template', 'vm-template.xml.j2') }}"
+  when: "vm_name not in existing_vms.list_vms"
+
+- name: Ensure VM is started
+  community.libvirt.virt:
+    name: "{{ vm_name }}"
+    state: running
+  register: vm_start_results
+  until: "vm_start_results is success"
+  retries: 15
+  delay: 2
+
+- name: Ensure temporary file is deleted
+  file:
+    path: "/tmp/{{ base_image_name }}"
+    state: absent
+  when: cleanup_tmp | bool
+
+  
