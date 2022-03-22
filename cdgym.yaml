@@ -16,6 +16,7 @@
     - name: CDGym
       include_role:
         name: cdgym
+      register: cdgym_out
       vars:
         libvirt_pool_dir: "{{ pool_dir }}"
         vm_name: "{{ vm }}"
@@ -24,4 +25,4 @@
         vm_net: "{{ net }}"
         cleanup_tmp: "{{ cleanup }}"
         ssh_key: "{{ ssh_pub_key }}"
-
+    - debug: msg= "{{ cdgym_out.stdout }}"
